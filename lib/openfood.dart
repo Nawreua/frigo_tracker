@@ -20,16 +20,21 @@ Future<Product?> searchByBarcode(String barcode) async {
 
 Future<String?> findProductName(String barcode) async {
   Product? product = await searchByBarcode(barcode);
+  String? result;
   if (product != null) {
     if (product.productNameInLanguages?[OpenFoodFactsLanguage.FRENCH] != null) {
-      return product.productNameInLanguages?[OpenFoodFactsLanguage.FRENCH];
+      result = product.productNameInLanguages?[OpenFoodFactsLanguage.FRENCH];
     } else if (product.productNameInLanguages?[OpenFoodFactsLanguage.ENGLISH] != null) {
-      return product.productNameInLanguages?[OpenFoodFactsLanguage.ENGLISH];
+      result = product.productNameInLanguages?[OpenFoodFactsLanguage.ENGLISH];
     } else if (product.productNameInLanguages?[OpenFoodFactsLanguage.GERMAN] != null) {
-      return product.productNameInLanguages?[OpenFoodFactsLanguage.GERMAN];
+      result = product.productNameInLanguages?[OpenFoodFactsLanguage.GERMAN];
     } else {
-      return product.productName;
+      result = product.productName;
     }
   }
-  return null;
+  // Simple check to prevent empty name display (can happen)
+  if (result != null && result.isEmpty) {
+    return null;
+  }
+  return result;
 }

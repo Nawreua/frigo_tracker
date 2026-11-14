@@ -40,12 +40,50 @@ class _ProductScannerState extends State<ProductScanner> {
     );
   }
 
+  Future<String?> _inputProductName() async {
+    return showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: Text("Nom du produit ?"),
+          content: TextField(
+            autofocus: true,
+            decoration: InputDecoration(hintText: 'Entrez le nom du produit'),
+            controller: controller,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(controller.text.trim());
+              },
+              child: Text('Valider')
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop('');
+              },
+              child: Text('Annuler')
+            )
+          ],
+        );
+      }
+    );
+  }
+
   Future<String> _findAndAddProduct(String barcode) async {
     // Find the product associated with it
     Food? food = await findFoodByBarcode(barcode);
     if (food == null) {
       // If the food is not found, create the row for it
       String? name = await findProductName(barcode);
+      // If no name was found, ask the user directly
+      if (name == null && mounted) {
+        name = await _inputProductName();
+        if (name != null && name.isEmpty) {
+          name = null;
+        }
+      }
       if (name != null && mounted) {
         final result = await _isCorrectProduct(name);
         if (result != null && result) {  
