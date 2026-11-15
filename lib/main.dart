@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frigo/data/dataview.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
@@ -127,40 +128,18 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       persistentFooterButtons: [
         IconButton(
-          onPressed: () async {
-            final result = await showDialog<bool>(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Text("Nettoyage de la base de données"),
-                  content: Text('Voulez-vous nettoyer la base de données ?'),
-                  actions: [
-                    ElevatedButton(
-                      onPressed: () {
-                          Navigator.of(context).pop(true);
-                      },
-                      child: Text('Oui')
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(false);
-                      },
-                      child: Text('Non')
-                    )
-                  ],
-                );
-              }
-            );
-            if (result != null && result) {
-              await DatabaseHandler.instance.clearDatabase();
-              if (mounted) {
-                ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text('Base de données nettoyée')));
-                _loadFrigoItems();
-              }
-            }
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DataViewPage())
+            ).then((_) => _loadFrigoItems());
           },
-          icon: Icon(Icons.clear_all))
+          icon: Icon(Icons.dataset))
       ],
+      persistentFooterDecoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.inversePrimary,
+        border: Border(top: BorderSide())
+      ),
     );
   }
 }

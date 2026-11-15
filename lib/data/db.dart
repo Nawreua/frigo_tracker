@@ -30,30 +30,29 @@ class DatabaseHandler {
     await db.transaction((txn) async {
       await txn.execute('DROP TABLE IF EXISTS ${FoodStored.tableName}');
       await txn.execute('DROP TABLE IF EXISTS ${Food.tableName}');
-      await txn.execute(
-        'CREATE TABLE ${Food.tableName}(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, barcode TEXT NOT NULL UNIQUE)',
-      );
-      await txn.execute(
-        'CREATE TABLE ${FoodStored.tableName}(id INTEGER PRIMARY KEY, foodId INTEGER NOT NULL REFERENCES ${Food.tableName}(id), expirationDate INTEGER NOT NULL)'
-      );
+      await _createDatabase(txn);
     });
+  }
+
+  // Run the CREATE TABLE statement on the database.
+  Future<void> _createDatabase(Transaction txn) async {
+    await txn.execute(
+      'CREATE TABLE ${Food.tableName}(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, barcode TEXT NOT NULL UNIQUE)',
+    );
+    await txn.execute(
+      'CREATE TABLE ${FoodStored.tableName}(id INTEGER PRIMARY KEY, FOREIGN KEY (foodId) REFERENCES ${Food.tableName}(id) ON DELETE CASCADE, expirationDate INTEGER NOT NULL)'
+    );
   }
 
   Future<Database> _initializeDatabase() async {
     // Open the database and store the reference.
     return openDatabase(
       await getDatabasePath(),
+      // Configure the database
+      onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       // When the database is first created, create tables to store.
       onCreate: (db, version) {
-        // Run the CREATE TABLE statement on the database.
-        return db.transaction((txn) async {
-          await txn.execute(
-            'CREATE TABLE ${Food.tableName}(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, barcode TEXT NOT NULL UNIQUE)',
-          );
-          await txn.execute(
-            'CREATE TABLE ${FoodStored.tableName}(id INTEGER PRIMARY KEY, foodId INTEGER NOT NULL REFERENCES ${Food.tableName}(id), expirationDate INTEGER NOT NULL)'
-          );
-        });
+        return db.transaction((txn) => _createDatabase(txn));
       },
       // Set the version. This executes the onCreate function and provides a
       // path to perform database upgrades and downgrades.
@@ -86,6 +85,34 @@ Future<Food?> findFoodByBarcode(String barcode) async {
     return Food(id: food.first['id'] as int, name: food.first['name'] as String, barcode: food.first['barcode'] as String);
   }
   return null;
+}
+
+Future<void> deleteFood(int id) async {
+  // Get a reference to the database
+  final db = await DatabaseHandler.instance.getDatabase();
+
+  // Remove the food from the database
+  await db.delete(
+    Food.tableName,
+    where: 'id = ?',
+    whereArgs: [id]
+  );
+}
+
+// A method that retrieves all the foods scanned in the database
+Future<List<Food>> foods() async {
+  // Get a reference to the database
+  final db = await DatabaseHandler.instance.getDatabase();
+
+  // Query the table for all the foods.
+  final List<Map<String, Object?>> foodMap = await db.query(Food.tableName, orderBy: 'name');
+
+  // Convert the list of each food's fields into a list of `Food` objects.
+  return [
+    for (final {'id': id as int, 'name': name as String, 'barcode': barcode as String}
+        in foodMap)
+      Food(id: id, name: name, barcode: barcode),
+  ];
 }
 
 Future<FoodStored> insertFoodStored(FoodStored foodStored) async {
